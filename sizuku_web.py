@@ -5,6 +5,7 @@ import pandas as pd
 from datetime import datetime
 import io
 import matplotlib.pyplot as plt
+import os
 
 # JS埋め込みに必要
 import streamlit.components.v1 as components
@@ -33,7 +34,7 @@ except FileNotFoundError:
 if st.button("しずくを落とす"):
     st.session_state["drop_count"] += 1
 
-    # 💡 JavaScriptで音を鳴らす（キャッシュ回避のためURLにtimestampをつける）
+    # JavaScriptで音を鳴らす（キャッシュ回避で毎回timestamp付加）
     components.html(f"""
         <script>
             var audio = new Audio("{DROP_SOUND_URL}?t={datetime.now().timestamp()}");
@@ -56,11 +57,16 @@ if st.button("しずくを落とす"):
         "drop_number": st.session_state["drop_count"]
     })
 
-# グラフ描画（時刻 vs しずく番号）
+# DataFrame定義
+csv_path = "sizuku_log.csv"
+df = None
+if os.path.exists(csv_path):
+    df = pd.read_csv(csv_path)
 if st.session_state["drop_log"]:
     df = pd.DataFrame(st.session_state["drop_log"])
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
 
+# グラフ描画
+if df is not None and not df.empty:
     fig, ax = plt.subplots()
     ax.plot(df["timestamp"], df["drop_number"], marker="o", linestyle="-", color="blue")
     ax.set_xlabel("時刻")
@@ -69,9 +75,21 @@ if st.session_state["drop_log"]:
     ax.tick_params(axis='x', rotation=45)
     st.pyplot(fig)
 
-# ログの表示とダウンロード
-if st.session_state["drop_log"]:
-    df = pd.DataFrame(st.session_state["drop_log"])
+    # PNGダウンロードボタン
+    img_buffer = io.BytesIO()
+    fig.savefig(img_buffer, format="png")
+    img_buffer.seek(0)
+    st.download_button(
+        label="📷 グラフをPNGでダウンロード",
+        data=img_buffer,
+        file_name="sizuku_chart.png",
+        mime="image/png"
+    )
+else:
+    st.info("まだログがないようです。まずは1滴落としてみよう💧")
+
+# ログの表示とCSVダウンロード
+if df is not None and not df.empty:
     st.subheader("📄 しずくログ")
     st.dataframe(df)
 
