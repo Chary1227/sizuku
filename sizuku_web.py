@@ -58,28 +58,38 @@ if st.button("しずくを落とす"):
         "timestamp": now,
         "drop_number": st.session_state["drop_count"]
     })
+# DataFrame定義
+csv_path = "sizuku_log.csv"
+df = None  # ← これを必ず先に入れておく！
 
-# DataFrame生成
-df = pd.DataFrame(st.session_state["drop_log"])
-if not df.empty:
+if os.path.exists(csv_path):
+    df = pd.read_csv(csv_path)
+
+if st.session_state["drop_log"]:
+    df = pd.DataFrame(st.session_state["drop_log"])
+    
+# グラフ描画（ログが存在する場合）
+if df is not None and not df.empty:
     df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-    # グラフ表示
-    fig, ax = plt.subplots()
+    # フォント設定（日本語対応）
     font_path = "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc"
     font_prop = fm.FontProperties(fname=font_path)
 
+    # グラフ作成
+    fig, ax = plt.subplots()
     ax.plot(df["timestamp"], df["drop_number"], marker="o", linestyle="-", color="blue")
-    ax.set_title("💧 時間とともに落ちたしずく", fontproperties=font_prop)
     ax.set_xlabel("時刻", fontproperties=font_prop)
     ax.set_ylabel("しずく番号", fontproperties=font_prop)
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
-    fig.autofmt_xdate()
+    ax.set_title("💧 時間とともに落ちたしずく", fontproperties=font_prop)
+    ax.tick_params(axis='x', rotation=45)
+
+    # 表示
     st.pyplot(fig)
 
-    # PNG ダウンロード
+    # PNGダウンロード用に保存
     img_buffer = io.BytesIO()
-    fig.savefig(img_buffer, format="png")
+    fig.savefig(img_buffer, format="png", bbox_inches="tight")
     img_buffer.seek(0)
     st.download_button(
         label="📷 グラフをPNGでダウンロード",
@@ -87,6 +97,7 @@ if not df.empty:
         file_name="sizuku_chart.png",
         mime="image/png"
     )
+
 
     # ログとCSVダウンロード
     st.subheader("📄 しずくログ")
