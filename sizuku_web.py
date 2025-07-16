@@ -1,6 +1,8 @@
 import streamlit as st
 from PIL import Image
 import time
+import os
+import pandas as pd
 
 # ページ設定
 st.set_page_config(page_title="チャーリーの物理sizuku", layout="centered")
@@ -14,6 +16,8 @@ if "drop_count" not in st.session_state:
 
 # 音ファイルURL（GitHub raw）
 DROP_SOUND_URL = "https://raw.githubusercontent.com/Chary1227/sizuku/main/sizuku_oto.mp3"
+
+from datetime import datetime
 
 # 画像読み込み
 try:
