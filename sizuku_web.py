@@ -4,6 +4,7 @@ import time
 import pandas as pd
 from datetime import datetime
 import io
+import matplotlib.pyplot as plt
 
 # JS埋め込みに必要
 import streamlit.components.v1 as components
@@ -54,6 +55,19 @@ if st.button("しずくを落とす"):
         "timestamp": now,
         "drop_number": st.session_state["drop_count"]
     })
+
+# グラフ描画（時刻 vs しずく番号）
+if st.session_state["drop_log"]:
+    df = pd.DataFrame(st.session_state["drop_log"])
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+    fig, ax = plt.subplots()
+    ax.plot(df["timestamp"], df["drop_number"], marker="o", linestyle="-", color="blue")
+    ax.set_xlabel("時刻")
+    ax.set_ylabel("しずく番号")
+    ax.set_title("💧 時間とともに落ちたしずく")
+    ax.tick_params(axis='x', rotation=45)
+    st.pyplot(fig)
 
 # ログの表示とダウンロード
 if st.session_state["drop_log"]:
