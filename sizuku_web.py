@@ -5,41 +5,42 @@ import pandas as pd
 from datetime import datetime
 import io
 
-# ページ設定
-st.set_page_config(page_title="チャーリーのWebしずく", layout="centered")
-st.title("💧 チャーリーのWebしずく（ログつき）")
+# JS埋め込みに必要
+import streamlit.components.v1 as components
 
-# 画像読み込み
-try:
-    img = Image.open("sizuku_drop.png")
-except FileNotFoundError:
-    st.error("💥 sizuku_drop.png が見つかりません。ファイル名を確認してください。")
-    st.stop()
-
-# 音ファイル（GitHub raw URL）
+# GitHub上の音ファイル（MP3）
 DROP_SOUND_URL = "https://raw.githubusercontent.com/Chary1227/sizuku/main/sizuku_oto.mp3"
 
-# セッション状態にログを保持
+# ページ設定とタイトル
+st.set_page_config(page_title="チャーリーのWebしずく", layout="centered")
+st.title("💧 チャーリーのWebしずく（JS音対応）")
+
+# 初期状態
 if "drop_count" not in st.session_state:
     st.session_state["drop_count"] = 0
 if "drop_log" not in st.session_state:
     st.session_state["drop_log"] = []
 
-# ボタンを押したときの処理
+# 画像読み込み
+try:
+    img = Image.open("sizuku_drop.png")
+except FileNotFoundError:
+    st.error("💥 sizuku_drop.png が見つかりません。")
+    st.stop()
+
+# ボタン処理
 if st.button("しずくを落とす"):
     st.session_state["drop_count"] += 1
 
-    # 音を鳴らす
-    st.markdown(
-        f"""
-        <audio autoplay>
-            <source src="{DROP_SOUND_URL}" type="audio/mpeg">
-        </audio>
-        """,
-        unsafe_allow_html=True
-    )
+    # 💡 JavaScriptで音を鳴らす（キャッシュ回避のためURLにtimestampをつける）
+    components.html(f"""
+        <script>
+            var audio = new Audio("{DROP_SOUND_URL}?t={datetime.now().timestamp()}");
+            audio.play();
+        </script>
+    """, height=0)
 
-    # 雫アニメーション
+    # アニメーション
     placeholder = st.empty()
     for y in range(10):
         placeholder.image(img, width=50)
@@ -47,14 +48,14 @@ if st.button("しずくを落とす"):
         placeholder.empty()
     st.image(img, width=50, caption=f"💥 sizuku #{st.session_state['drop_count']} 着地")
 
-    # ログをセッションに記録
+    # ログ記録
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     st.session_state["drop_log"].append({
         "timestamp": now,
         "drop_number": st.session_state["drop_count"]
     })
 
-# ログのダウンロード
+# ログの表示とダウンロード
 if st.session_state["drop_log"]:
     df = pd.DataFrame(st.session_state["drop_log"])
     st.subheader("📄 しずくログ")
@@ -67,4 +68,3 @@ if st.session_state["drop_log"]:
         file_name="sizuku_log.csv",
         mime="text/csv"
     )
-
