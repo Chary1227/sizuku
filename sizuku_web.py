@@ -5,31 +5,25 @@ import pandas as pd
 from datetime import datetime
 import io
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import os
-
-# JS埋め込みに必要
+import matplotlib.font_manager as fm
 import streamlit.components.v1 as components
 
 # GitHub上の音ファイル（MP3）
 DROP_SOUND_URL = "https://raw.githubusercontent.com/Chary1227/sizuku/main/sizuku_oto.mp3"
 
-# ページ設定とタイトル
 st.set_page_config(page_title="チャーリーのWebしずく", layout="centered")
 st.title("💧 チャーリーのWebしずく（JS音対応）")
 
+# セッション状態の初期化
 if "drop_log" not in st.session_state:
     st.session_state["drop_log"] = []
     st.session_state["drop_count"] = 0
 
-# CSVファイルも削除（Streamlit Cloudでは非推奨だけどやるなら）
+# sizuku_log.csv を削除（セッション単位）
 if os.path.exists("sizuku_log.csv"):
     os.remove("sizuku_log.csv")
-
-# 初期状態
-if "drop_count" not in st.session_state:
-    st.session_state["drop_count"] = 0
-if "drop_log" not in st.session_state:
-    st.session_state["drop_log"] = []
 
 # 画像読み込み
 try:
@@ -38,11 +32,11 @@ except FileNotFoundError:
     st.error("💥 sizuku_drop.png が見つかりません。")
     st.stop()
 
-# ボタン処理
+# ボタンでしずくを落とす
 if st.button("しずくを落とす"):
     st.session_state["drop_count"] += 1
 
-    # JavaScriptで音を鳴らす（キャッシュ回避で毎回timestamp付加）
+    # JavaScript音声
     components.html(f"""
         <script>
             var audio = new Audio("{DROP_SOUND_URL}?t={datetime.now().timestamp()}");
@@ -52,7 +46,7 @@ if st.button("しずくを落とす"):
 
     # アニメーション
     placeholder = st.empty()
-    for y in range(10):
+    for _ in range(10):
         placeholder.image(img, width=50)
         time.sleep(0.03)
         placeholder.empty()
@@ -65,25 +59,25 @@ if st.button("しずくを落とす"):
         "drop_number": st.session_state["drop_count"]
     })
 
-# DataFrame定義
-csv_path = "sizuku_log.csv"
-df = None
-if os.path.exists(csv_path):
-    df = pd.read_csv(csv_path)
-if st.session_state["drop_log"]:
-    df = pd.DataFrame(st.session_state["drop_log"])
+# DataFrame生成
+df = pd.DataFrame(st.session_state["drop_log"])
+if not df.empty:
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-# グラフ描画
-if df is not None and not df.empty:
+    # グラフ表示
     fig, ax = plt.subplots()
+    font_path = "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc"
+    font_prop = fm.FontProperties(fname=font_path)
+
     ax.plot(df["timestamp"], df["drop_number"], marker="o", linestyle="-", color="blue")
-    ax.set_xlabel("時刻")
-    ax.set_ylabel("しずく番号")
-    ax.set_title("💧 時間とともに落ちたしずく")
-    ax.tick_params(axis='x', rotation=45)
+    ax.set_title("💧 時間とともに落ちたしずく", fontproperties=font_prop)
+    ax.set_xlabel("時刻", fontproperties=font_prop)
+    ax.set_ylabel("しずく番号", fontproperties=font_prop)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
+    fig.autofmt_xdate()
     st.pyplot(fig)
 
-    # PNGダウンロードボタン
+    # PNG ダウンロード
     img_buffer = io.BytesIO()
     fig.savefig(img_buffer, format="png")
     img_buffer.seek(0)
@@ -93,11 +87,8 @@ if df is not None and not df.empty:
         file_name="sizuku_chart.png",
         mime="image/png"
     )
-else:
-    st.info("まだログがないようです。まずは1滴落としてみよう💧")
 
-# ログの表示とCSVダウンロード
-if df is not None and not df.empty:
+    # ログとCSVダウンロード
     st.subheader("📄 しずくログ")
     st.dataframe(df)
 
@@ -108,3 +99,5 @@ if df is not None and not df.empty:
         file_name="sizuku_log.csv",
         mime="text/csv"
     )
+else:
+    st.info("まだログがないようです。まずは1滴落としてみよう💧")
