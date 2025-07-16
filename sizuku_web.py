@@ -1,23 +1,13 @@
 import streamlit as st
 from PIL import Image
 import time
-import os
 import pandas as pd
+from datetime import datetime
+import io
 
 # ページ設定
-st.set_page_config(page_title="チャーリーの物理sizuku", layout="centered")
-
-# タイトル
-st.title("💧 チャーリーの物理sizuku（Web音付き）")
-
-# 初期状態
-if "drop_count" not in st.session_state:
-    st.session_state["drop_count"] = 0
-
-# 音ファイルURL（GitHub raw）
-DROP_SOUND_URL = "https://raw.githubusercontent.com/Chary1227/sizuku/main/sizuku_oto.mp3"
-
-from datetime import datetime
+st.set_page_config(page_title="チャーリーのWebしずく", layout="centered")
+st.title("💧 チャーリーのWebしずく（ログつき）")
 
 # 画像読み込み
 try:
@@ -26,11 +16,20 @@ except FileNotFoundError:
     st.error("💥 sizuku_drop.png が見つかりません。ファイル名を確認してください。")
     st.stop()
 
-# ボタンを押したらカウント増加 + 音再生
-if st.button("物理sizukuを落とす"):
+# 音ファイル（GitHub raw URL）
+DROP_SOUND_URL = "https://raw.githubusercontent.com/Chary1227/sizuku/main/sizuku_oto.mp3"
+
+# セッション状態にログを保持
+if "drop_count" not in st.session_state:
+    st.session_state["drop_count"] = 0
+if "drop_log" not in st.session_state:
+    st.session_state["drop_log"] = []
+
+# ボタンを押したときの処理
+if st.button("しずくを落とす"):
     st.session_state["drop_count"] += 1
 
-    # 🔊 音をHTMLで再生（ブラウザ上）
+    # 音を鳴らす
     st.markdown(
         f"""
         <audio autoplay>
@@ -39,36 +38,33 @@ if st.button("物理sizukuを落とす"):
         """,
         unsafe_allow_html=True
     )
-# ========================
-# CSVに履歴を保存する
-# ========================
 
-csv_path = "sizuku_log.csv"
-
-# 今の情報を記録
-now = datetime.now()
-timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
-drop_number = st.session_state["drop_count"]
-
-# データ行を辞書形式で
-new_row = {"timestamp": timestamp, "drop_number": drop_number}
-
-# ファイルがなければ新規作成、あれば追記
-if os.path.exists(csv_path):
-    df = pd.read_csv(csv_path)
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-else:
-    df = pd.DataFrame([new_row])
-
-df.to_csv(csv_path, index=False)
-
-
-# 落下アニメーション
-for i in range(st.session_state["drop_count"]):
+    # 雫アニメーション
     placeholder = st.empty()
     for y in range(10):
         placeholder.image(img, width=50)
         time.sleep(0.03)
         placeholder.empty()
-    st.image(img, width=50, caption=f"💥 sizuku #{i+1} 着地")
+    st.image(img, width=50, caption=f"💥 sizuku #{st.session_state['drop_count']} 着地")
+
+    # ログをセッションに記録
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    st.session_state["drop_log"].append({
+        "timestamp": now,
+        "drop_number": st.session_state["drop_count"]
+    })
+
+# ログのダウンロード
+if st.session_state["drop_log"]:
+    df = pd.DataFrame(st.session_state["drop_log"])
+    st.subheader("📄 しずくログ")
+    st.dataframe(df)
+
+    csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="📥 しずくログをダウンロード",
+        data=csv,
+        file_name="sizuku_log.csv",
+        mime="text/csv"
+    )
 
