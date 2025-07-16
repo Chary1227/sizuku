@@ -17,6 +17,14 @@ DROP_SOUND_URL = "https://raw.githubusercontent.com/Chary1227/sizuku/main/sizuku
 st.set_page_config(page_title="チャーリーのWebしずく", layout="centered")
 st.title("💧 チャーリーのWebしずく（JS音対応）")
 
+if "drop_log" not in st.session_state:
+    st.session_state["drop_log"] = []
+    st.session_state["drop_count"] = 0
+
+# CSVファイルも削除（Streamlit Cloudでは非推奨だけどやるなら）
+if os.path.exists("sizuku_log.csv"):
+    os.remove("sizuku_log.csv")
+
 # 初期状態
 if "drop_count" not in st.session_state:
     st.session_state["drop_count"] = 0
