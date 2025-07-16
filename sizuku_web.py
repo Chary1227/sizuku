@@ -35,6 +35,29 @@ if st.button("物理sizukuを落とす"):
         """,
         unsafe_allow_html=True
     )
+# ========================
+# CSVに履歴を保存する
+# ========================
+
+csv_path = "sizuku_log.csv"
+
+# 今の情報を記録
+now = datetime.now()
+timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+drop_number = st.session_state["drop_count"]
+
+# データ行を辞書形式で
+new_row = {"timestamp": timestamp, "drop_number": drop_number}
+
+# ファイルがなければ新規作成、あれば追記
+if os.path.exists(csv_path):
+    df = pd.read_csv(csv_path)
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+else:
+    df = pd.DataFrame([new_row])
+
+df.to_csv(csv_path, index=False)
+
 
 # 落下アニメーション
 for i in range(st.session_state["drop_count"]):
